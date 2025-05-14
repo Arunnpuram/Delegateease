@@ -139,10 +139,9 @@ export default function DirectApi() {
 
           <Alert className="mt-4">
             <AlertDescription>
-              <p className="font-medium">Note about Vercel Deployments:</p>
-              <p className="text-sm mt-1">
-                These API routes use the App Router format which should work better with Vercel deployments. The older
-                Pages Router API routes in <code>/pages/api</code> might not work correctly on Vercel.
+              <p className="font-medium">API Routes:</p>
+              <p className="text-sm text-muted-foreground">
+                These API routes use the App Router format for better compatibility and performance.
               </p>
             </AlertDescription>
           </Alert>
