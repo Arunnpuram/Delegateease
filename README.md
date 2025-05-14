@@ -1,36 +1,59 @@
 # DelegateEase
 
-A self-hosted web application for easily managing Gmail delegation access for your organization.
+A self-hosted web application for easily managing Gmail delegation access for your organization. DelegateEase is a powerful web application designed to streamline the process of managing Gmail delegate access. It provides a user-friendly interface for administrators to efficiently handle email delegation across multiple accounts.
 
 ## Features
 
-- Add delegate access to shared mailboxes
-- Remove delegate access from shared mailboxes
-- List all delegates for a mailbox
-- Batch operations for multiple mailboxes and delegates
-- Secure handling of Google service account credentials
-- User-friendly web interface with light and dark mode
-- OAuth 2.0 or Service Account authentication options
-- Completely self-hosted - no external dependencies
+- **Multiple Authentication Methods**
+  - Service Account Authentication
+  - OAuth 2.0 Authentication
+  - Secure credential management
 
-## How It Works
+- **Delegate Management**
+  - Add delegates to Gmail accounts
+  - Remove delegate access
+  - List existing delegates
+  - Batch operations support
 
-DelegateEase provides a modern web interface for the Gmail delegation management scripts. The core functionality is implemented in:
+- **User-Friendly Interface**
+  - Clean, modern UI built with Next.js
+  - Intuitive form-based operations
+  - Real-time feedback and status updates
+  - Responsive design for all devices
 
-- `createDelegate.ts` - Script to add delegate access to Gmail accounts
-- `deleteDelegate.ts` - Script to remove delegate access from Gmail accounts
+- **Security**
+  - Secure credential handling
+  - Environment-based configuration
+  - Protected API endpoints
+  - Safe file upload handling
 
-The web interface in this repository provides a user-friendly way to use these scripts, with additional features like batch processing and a responsive UI.
+## Tech Stack
 
-## Prerequisites
+- **Frontend**
+  - Next.js 14
+  - React
+  - TypeScript
+  - Tailwind CSS
+  - Shadcn UI Components
 
-1. Node.js (v18 or higher)
-2. A Google Cloud project with the Gmail API enabled
-3. A service account with domain-wide delegation configured (or OAuth 2.0 credentials)
+- **Backend**
+  - Node.js
+  - Gmail API Integration
+  - TypeScript
 
-## Setup
+## Getting Started
 
-### 1. Create a Google Cloud Project and Service Account
+### Prerequisites
+
+- Node.js (v18 or higher)
+- npm or pnpm
+- Google Cloud Platform account
+- Gmail API enabled
+- Service account credentials (for service account authentication)
+
+### Google Cloud Setup
+
+#### 1. Create a Google Cloud Project and Service Account
 
 1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select an existing one
@@ -44,39 +67,81 @@ The web interface in this repository provides a user-friendly way to use these s
    - Grant necessary roles (no specific roles needed for domain-wide delegation)
    - Create and download the JSON key file
 
-### 2. Configure Domain-Wide Delegation
+#### 2. Configure Domain-Wide Delegation
 
 1. Go to your Google Workspace Admin Console
 2. Navigate to Security > API Controls > Domain-wide Delegation
 3. Click "Add new" and enter:
    - Client ID: Your service account's client ID (found in the JSON key file)
    - OAuth Scopes:
-   - 
+     ```
      https://www.googleapis.com/auth/gmail.settings.sharing,
-     
      https://www.googleapis.com/auth/gmail.settings.basic,
-     
      https://www.googleapis.com/auth/gmail.modify
-     
-## Self-Hosting Options
+     ```
 
-### Standard Node.js Deployment
+### Installation
 
-1. Clone the repository
-2. Install dependencies: `npm install`
-3. Build the application: `npm run build`
-4. Start the server: `npm start`
-5. Access the application at http://localhost:3000
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Arunnpuram/DelegateEase.git
+   cd DelegateEase
+   ```
 
-### Docker Deployment
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   pnpm install
+   ```
 
-1. Clone the repository
-2. Build the Docker image: `docker build -t delegateease .`
-3. Run the container: `docker run -p 3000:3000 delegateease`
-4. Access the application at http://localhost:3000
+3. Set up environment variables:
+   Create a `.env.local` file with the following variables:
+   ```
+   NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_client_id
+   NEXT_PUBLIC_GOOGLE_CLIENT_SECRET=your_client_secret
+   ```
 
-### Docker Compose Deployment
+4. Run the development server:
+   ```bash
+   npm run dev
+   # or
+   pnpm dev
+   ```
 
-1. Clone the repository
-2. Run: `docker-compose up -d`
-3. Access the application at http://localhost:3000
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Usage
+
+1. **Authentication**
+   - Choose between Service Account or OAuth 2.0 authentication
+   - Follow the on-screen instructions to complete authentication
+
+2. **Managing Delegates**
+   - Select the operation type (Add/Remove/List)
+   - Enter the primary user's email
+   - Enter delegate email(s)
+   - Submit the request
+
+3. **Batch Operations**
+   - Use the batch operations feature for managing multiple delegates
+   - Follow the format instructions in the interface
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Support
+
+For support, please open an issue in the GitHub repository or contact the maintainers.
+
+## Acknowledgments
+
+- Google Gmail API
+- Next.js team
+- Shadcn UI
+- All contributors and users of the project
