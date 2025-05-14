@@ -50,9 +50,12 @@ The web interface in this repository provides a user-friendly way to use these s
 2. Navigate to Security > API Controls > Domain-wide Delegation
 3. Click "Add new" and enter:
    - Client ID: Your service account's client ID (found in the JSON key file)
-   - OAuth Scopes: 
+   - OAuth Scopes:
+   - 
      https://www.googleapis.com/auth/gmail.settings.sharing,
+     
      https://www.googleapis.com/auth/gmail.settings.basic,
+     
      https://www.googleapis.com/auth/gmail.modify
      
 ## Self-Hosting Options
