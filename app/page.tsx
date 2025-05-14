@@ -20,7 +20,12 @@ export default function Home() {
     <ThemeProvider attribute="class" defaultTheme="light">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6">DelegateEase - Gmail Delegation Manager</h1>
+          <header className="flex items-center justify-between p-4 border-b">
+            <h1 className="text-2xl font-bold">DelegateEase</h1>
+            <nav className="flex gap-4">
+              {/* Add any necessary navigation links here */}
+            </nav>
+          </header>
           <DelegateEaseApp />
         </div>
       </div>

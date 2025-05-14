@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/use-toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { DelegateFormProps } from "@/types"
+import { useDelegateFormHandler } from "@/hooks/useDelegateFormHandler"
 
 export default function DelegateForm({
   authMethod,
@@ -23,126 +24,29 @@ export default function DelegateForm({
   onDirectApiError,
   onDirectApiLoading,
 }: DelegateFormProps) {
-  const [operation, setOperation] = useState<string>("list")
-  const [userEmail, setUserEmail] = useState<string>("")
-  const [delegateEmail, setDelegateEmail] = useState<string>("")
-  const [batchEmails, setBatchEmails] = useState<string>("")
-  const [debugMode, setDebugMode] = useState<boolean>(false) // Debug mode disabled by default
+  const {
+    operation,
+    setOperation,
+    userEmail,
+    setUserEmail,
+    delegateEmail,
+    setDelegateEmail,
+    batchMode,
+    setBatchMode,
+    batchEmails,
+    setBatchEmails,
+    isSubmitting,
+    showConfirmation,
+    setShowConfirmation,
+    handleSubmit,
+    parseBatchOperations,
+  } = useDelegateFormHandler({
+    onSubmit: (formData, endpoint) => onSubmit(formData, endpoint),
+    serviceAccountFile,
+    authMethod: typeof authMethod === "string" ? authMethod : "",
+  })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!authMethod) {
-      toast({
-        title: "Authentication required",
-        description: "Please authenticate first",
-        variant: "destructive",
-      })
-      return
-    }
-
-    const isBatchMode = e.currentTarget.getAttribute("data-mode") === "batch"
-
-    if (!isBatchMode && !userEmail) {
-      toast({
-        title: "Missing information",
-        description: "Please enter the mailbox email address",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (!isBatchMode && (operation === "add" || operation === "remove") && !delegateEmail) {
-      toast({
-        title: "Missing information",
-        description: "Please enter the delegate email address",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (isBatchMode && !batchEmails.trim()) {
-      toast({
-        title: "Missing information",
-        description: "Please enter batch operations",
-        variant: "destructive",
-      })
-      return
-    }
-
-    try {
-      const formData = new FormData()
-
-      if (authMethod === "service-account" && serviceAccountFile) {
-        formData.append("serviceAccount", serviceAccountFile)
-      } else {
-        toast({
-          title: "Missing service account",
-          description: "Service account file is required",
-          variant: "destructive",
-        })
-        return
-      }
-
-      formData.append("authMethod", authMethod)
-      formData.append("operation", operation)
-
-      if (isBatchMode) {
-        // Parse batch operations
-        try {
-          const operations = batchEmails
-            .split("\n")
-            .filter((line) => line.trim())
-            .map((line) => {
-              const [op, user, delegate] = line.split(",").map((item) => item.trim())
-              return {
-                operation: op,
-                userEmail: user,
-                delegateEmail: delegate,
-              }
-            })
-
-          formData.append("operations", JSON.stringify(operations))
-        } catch (error) {
-          toast({
-            title: "Invalid format",
-            description: "Please check your batch operations format",
-            variant: "destructive",
-          })
-          return
-        }
-      } else {
-        formData.append("userEmail", userEmail)
-        if (delegateEmail) {
-          formData.append("delegateEmail", delegateEmail)
-        }
-      }
-
-      if (debugMode) {
-        console.log("Form data being submitted:")
-        for (const [key, value] of formData.entries()) {
-          console.log(`${key}: ${value}`)
-        }
-      }
-
-      // Use the consolidated API endpoint
-      const endpoint = "/api/delegates"
-      console.log(`Submitting to endpoint: ${endpoint}`)
-
-      await onSubmit(formData, endpoint)
-
-      // Reset form if successful
-      if (!isBatchMode) {
-        if (operation !== "list") {
-          setDelegateEmail("")
-        }
-      } else {
-        setBatchEmails("")
-      }
-    } catch (error) {
-      console.error("Error submitting form:", error)
-    }
-  }
+  const [batchInput, setBatchInput] = useState("")
 
   const handleDirectApiClick = async () => {
     if (!serviceAccountFile) {
@@ -254,120 +158,74 @@ export default function DelegateForm({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Operation</Label>
-            <RadioGroup defaultValue="list" value={operation} onValueChange={setOperation} className="flex space-x-4">
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="list" id="list" />
-                <Label htmlFor="list" className="cursor-pointer">
-                  List Delegates
-                </Label>
-              </div>
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <Label>Operation Type</Label>
+            <RadioGroup
+              value={operation}
+              onValueChange={(value: string) => setOperation(value)}
+              className="flex flex-col space-y-2"
+            >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="add" id="add" />
-                <Label htmlFor="add" className="cursor-pointer">
-                  Add Delegate
-                </Label>
+                <Label htmlFor="add">Add Delegate</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="remove" id="remove" />
-                <Label htmlFor="remove" className="cursor-pointer">
-                  Remove Delegate
-                </Label>
+                <Label htmlFor="remove">Remove Delegate</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="list" id="list" />
+                <Label htmlFor="list">List Delegates</Label>
               </div>
             </RadioGroup>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="user-email">Mailbox Email</Label>
+          <div className="space-y-4">
+            <Label>User Email</Label>
             <Input
-              id="user-email"
               type="email"
               value={userEmail}
               onChange={(e) => setUserEmail(e.target.value)}
-              placeholder="shared@example.com"
-              required
+              placeholder="user@example.com"
             />
-            <p className="text-xs text-muted-foreground">The email address of the shared mailbox</p>
           </div>
 
-          {operation !== "list" && (
-            <div className="space-y-2">
-              <Label htmlFor="delegate-email">Delegate Email</Label>
-              <Input
-                id="delegate-email"
-                type="email"
-                value={delegateEmail}
-                onChange={(e) => setDelegateEmail(e.target.value)}
-                placeholder="user@example.com"
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                The email address of the user who will {operation === "add" ? "receive" : "lose"} access
-              </p>
-            </div>
-          )}
-
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="debug-mode"
-              checked={debugMode}
-              onChange={(e) => setDebugMode(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+          <div className="space-y-4">
+            <Label>Delegate Email</Label>
+            <Input
+              type="email"
+              value={delegateEmail}
+              onChange={(e) => setDelegateEmail(e.target.value)}
+              placeholder="delegate@example.com"
             />
-            <Label htmlFor="debug-mode" className="text-sm">
-              Debug Mode (logs form data to console)
-            </Label>
           </div>
 
-          <Separator className="my-4" />
-
-          <div className="space-y-2">
-            <Button type="submit" disabled={!authMethod || isLoading} className="w-full">
-              {isLoading ? (
-                <>
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-4 w-4"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Processing...
-                </>
-              ) : operation === "list" ? (
-                "List Delegates"
-              ) : operation === "add" ? (
-                "Add Delegate"
-              ) : (
-                "Remove Delegate"
-              )}
-            </Button>
+          <div className="space-y-4">
+            <Label>Batch Operations</Label>
+            <Textarea
+              value={batchInput}
+              onChange={(e) => setBatchInput(e.target.value)}
+              placeholder="operation,userEmail,delegateEmail (one per line)"
+              className="min-h-[100px]"
+            />
           </div>
-        </form>
 
-        {debugMode && (
-          <Alert className="mt-4 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-900">
-            <AlertDescription className="text-xs">
-              Debug Mode is enabled. Check the browser console (F12) for detailed logs.
-            </AlertDescription>
-          </Alert>
-        )}
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                Processing...
+              </div>
+            ) : (
+              "Submit"
+            )}
+          </Button>
+        </div>
       </TabsContent>
 
       <TabsContent value="batch">
@@ -394,19 +252,6 @@ export default function DelegateForm({
                 list,shared@example.com,
               </pre>
             </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="debug-mode-batch"
-              checked={debugMode}
-              onChange={(e) => setDebugMode(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-            />
-            <Label htmlFor="debug-mode-batch" className="text-sm">
-              Debug Mode (logs form data to console)
-            </Label>
           </div>
 
           <Separator className="my-4" />

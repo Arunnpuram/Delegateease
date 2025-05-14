@@ -64,7 +64,7 @@ The web interface in this repository provides a user-friendly way to use these s
 
 1. Clone the repository
 2. Install dependencies: `npm install`
-3. Build the application: `npm build`
+3. Build the application: `npm run build`
 4. Start the server: `npm start`
 5. Access the application at http://localhost:3000
 

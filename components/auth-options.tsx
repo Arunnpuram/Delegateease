@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import ServiceAccountUpload from "./service-account-upload"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import type { AuthOptionsProps } from "@/types"
 
 export default function AuthOptions({ onServiceAccountUploaded, onOAuthComplete }: AuthOptionsProps) {
@@ -23,14 +23,19 @@ export default function AuthOptions({ onServiceAccountUploaded, onOAuthComplete 
   return (
     <Tabs defaultValue="service-account" className="w-full">
       <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="service-account">Service Account</TabsTrigger>
-        <TabsTrigger value="oauth">OAuth 2.0</TabsTrigger>
+        <TabsTrigger value="service-account">
+          Service Account
+        </TabsTrigger>
+        <TabsTrigger value="oauth">
+          OAuth 2.0
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="service-account" className="space-y-4">
-        <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-900">
+        <Alert>
+          <AlertTitle>Service Account Authentication</AlertTitle>
           <AlertDescription>
-            Upload your Google service account JSON key file to authenticate with domain-wide delegation.
+            Upload your service account JSON key file to authenticate.
           </AlertDescription>
         </Alert>
 
@@ -48,9 +53,10 @@ export default function AuthOptions({ onServiceAccountUploaded, onOAuthComplete 
       </TabsContent>
 
       <TabsContent value="oauth" className="space-y-4">
-        <Alert className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-900">
+        <Alert>
+          <AlertTitle>OAuth 2.0 Authentication</AlertTitle>
           <AlertDescription>
-            Authenticate with your Google account using OAuth 2.0. This requires admin privileges.
+            Authenticate using your Google account.
           </AlertDescription>
         </Alert>
 

@@ -1,14 +1,17 @@
+// Centralized type definitions for the entire application
+
+// Gmail API related types
 export interface Delegate {
-  delegateEmail: string
+  delegateEmail: string | null | undefined
   verificationStatus?: string
 }
 
 export interface OperationResult {
   success: boolean
-  userEmail: string
+  userEmail?: string
   delegateEmail?: string
-  operation: string
+  operation: "add" | "remove" | "list"
   message: string
-  delegates?: Delegate[]
   details?: any
+  delegates?: Delegate[]
 }

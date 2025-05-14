@@ -1,52 +1,43 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
-import { Input } from "@/components/ui/input"
+import React, { useState, useRef } from "react"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import type { ServiceAccountUploadProps } from "@/types"
 
 export default function ServiceAccountUpload({ onServiceAccountUploaded }: ServiceAccountUploadProps) {
   const [file, setFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0]
-      validateAndSetFile(selectedFile)
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0]
+    if (selectedFile) {
+      setFile(selectedFile)
+      onServiceAccountUploaded(selectedFile)
     }
   }
 
-  const validateAndSetFile = (selectedFile: File) => {
-    // Check if file is JSON
-    if (selectedFile.type !== "application/json" && !selectedFile.name.endsWith(".json")) {
-      alert("Please upload a JSON service account file")
-      return
-    }
-
-    setFile(selectedFile)
-    onServiceAccountUploaded(selectedFile)
-  }
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault()
     setIsDragging(true)
   }
 
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
+  const handleDragLeave = (event: React.DragEvent) => {
+    event.preventDefault()
     setIsDragging(false)
   }
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault()
     setIsDragging(false)
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      validateAndSetFile(e.dataTransfer.files[0])
+    const droppedFile = event.dataTransfer.files?.[0]
+    if (droppedFile) {
+      setFile(droppedFile)
+      onServiceAccountUploaded(droppedFile)
     }
   }
 
@@ -55,43 +46,40 @@ export default function ServiceAccountUpload({ onServiceAccountUploaded }: Servi
       <div>
         <Label htmlFor="serviceAccount">Google Service Account JSON</Label>
         <div
-          className={cn(
-            "mt-2 border-2 border-dashed rounded-lg p-6 text-center transition-colors duration-200",
-            isDragging ? "border-primary/50 bg-primary/5" : "border-input bg-muted/30 hover:bg-muted/50",
-          )}
+          className={`border-2 border-dashed rounded-lg p-8 text-center ${
+            isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25"
+          }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          <div className="flex flex-col items-center justify-center">
-            <p className="mt-2 text-sm font-medium">
-              {file ? file.name : "Drag and drop your service account JSON file here"}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">or</p>
+          <div className="space-y-4">
+            <div className="text-muted-foreground">
+              {file ? (
+                <div className="space-y-2">
+                  <p className="font-medium">Selected file:</p>
+                  <p className="text-sm">{file.name}</p>
+                </div>
+              ) : (
+                <p>Drag and drop your service account JSON file here, or click to select</p>
+              )}
+            </div>
+            <Input
+              type="file"
+              accept=".json"
+              onChange={handleFileChange}
+              className="hidden"
+              ref={fileInputRef}
+            />
             <Button
               type="button"
               variant="outline"
-              size="sm"
-              className="mt-2"
-              onClick={() => document.getElementById("fileInput")?.click()}
+              onClick={() => fileInputRef.current?.click()}
             >
-              Browse Files
+              Select File
             </Button>
-            <Input id="fileInput" type="file" accept=".json" onChange={handleFileChange} className="hidden" />
           </div>
         </div>
-        {file && (
-          <p className="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                clipRule="evenodd"
-              />
-            </svg>
-            File selected: {file.name}
-          </p>
-        )}
       </div>
     </div>
   )

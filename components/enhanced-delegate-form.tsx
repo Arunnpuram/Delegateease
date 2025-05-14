@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { HelpCircle, Upload, Search, AlertTriangle } from "lucide-react"
 import type { DelegateFormProps } from "@/types"
+import { useDelegateFormHandler } from "@/hooks/useDelegateFormHandler"
 
 export default function EnhancedDelegateForm({
   authMethod,

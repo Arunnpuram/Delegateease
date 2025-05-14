@@ -8,8 +8,7 @@ const inter = Inter({ subsets: ["latin"], display: "swap" })
 
 export const metadata: Metadata = {
   title: "DelegateEase - Gmail Delegation Manager",
-  description: "Self-hosted solution for managing Gmail delegation access across your organization",
-    generator: 'v0.dev'
+  description: "Self-hosted solution for managing Gmail delegation access across your organization"
 }
 
 export default function RootLayout({

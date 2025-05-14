@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { google, type gmail_v1 } from "googleapis"
+import { ServiceAccountManager } from "../../../utils/service-account"
+import { listDelegates as listDelegatesFromGmail, createGmailClient as createGmailClientFromUtils } from "../../../utils/gmail-integration"
 import { writeFile, unlink } from "fs/promises"
 import { join } from "path"
 import { tmpdir } from "os"
@@ -31,8 +33,7 @@ async function cleanupFile(filePath: string): Promise<void> {
 // Helper function to create Gmail client
 async function createGmailClient(serviceAccountPath: string, userEmail: string): Promise<gmail_v1.Gmail | null> {
   try {
-    const serviceAccountContent = await fsPromises.readFile(serviceAccountPath, "utf-8")
-    const serviceAccount = JSON.parse(serviceAccountContent)
+    const serviceAccount = await ServiceAccountManager.readFile(serviceAccountPath)
 
     const auth = new google.auth.JWT(
       serviceAccount.client_email,
@@ -208,103 +209,153 @@ async function processBatch(serviceAccountPath: string, operations: any[]): Prom
 
 // Main API handler
 export async function POST(request: NextRequest) {
-  console.log("Delegates API called with POST method")
-
   try {
-    // Parse the form data
     const formData = await request.formData()
+    const serviceAccountFile = formData.get("serviceAccountFile") as File
+    const userEmail = formData.get("userEmail") as string
+    const delegateEmail = formData.get("delegateEmail") as string
 
-    // Get the service account file
-    const serviceAccountFile = formData.get("serviceAccount") as File
-    if (!serviceAccountFile) {
-      return NextResponse.json({ success: false, message: "Service account file is required" }, { status: 400 })
+    if (!serviceAccountFile || !userEmail || !delegateEmail) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 },
+      )
     }
 
     // Save service account file temporarily
-    const serviceAccountPath = await saveServiceAccountFile(serviceAccountFile)
+    const filepath = await ServiceAccountManager.saveFile(serviceAccountFile)
 
     try {
-      // Check if this is a batch operation
-      const operationsJson = formData.get("operations")
-      if (operationsJson) {
-        // Process batch operations
-        const operations = JSON.parse(operationsJson as string)
-        const results = await processBatch(serviceAccountPath, operations)
-
-        return NextResponse.json({
-          success: true,
-          results,
-        })
-      }
-
-      // Single operation
-      const operation = (formData.get("operation") as string) || "list"
-      const userEmail = formData.get("userEmail") as string
-
-      if (!userEmail) {
-        return NextResponse.json({ success: false, message: "User email is required" }, { status: 400 })
-      }
+      // Read service account file
+      const serviceAccount = await ServiceAccountManager.readFile(filepath)
 
       // Create Gmail client
-      const gmail = await createGmailClient(serviceAccountPath, userEmail)
+      const gmail = await createGmailClientFromUtils(serviceAccount, userEmail)
       if (!gmail) {
-        return NextResponse.json({ success: false, message: "Failed to create Gmail client" }, { status: 500 })
+        return NextResponse.json(
+          { error: "Failed to create Gmail client" },
+          { status: 500 },
+        )
       }
 
-      if (operation === "list") {
-        // List delegates
-        const listResult = await listDelegates(gmail)
-        return NextResponse.json({
-          ...listResult,
-          userEmail,
-          operation: "list",
-          message: listResult.success ? "Delegates retrieved successfully" : listResult.message,
-        })
-      } else if (operation === "add") {
-        const delegateEmail = formData.get("delegateEmail") as string
-
-        if (!delegateEmail) {
-          return NextResponse.json({ success: false, message: "Delegate email is required" }, { status: 400 })
-        }
-
-        // Add delegate directly using the Gmail API
-        const addResult = await addDelegateDirectly(gmail, delegateEmail)
-        return NextResponse.json({
-          ...addResult,
-          userEmail,
-          delegateEmail,
-          operation: "add",
-        })
-      } else if (operation === "remove") {
-        const delegateEmail = formData.get("delegateEmail") as string
-
-        if (!delegateEmail) {
-          return NextResponse.json({ success: false, message: "Delegate email is required" }, { status: 400 })
-        }
-
-        // Remove delegate directly using the Gmail API
-        const removeResult = await removeDelegateDirectly(gmail, delegateEmail)
-        return NextResponse.json({
-          ...removeResult,
-          userEmail,
-          delegateEmail,
-          operation: "remove",
-        })
-      } else {
-        return NextResponse.json({ success: false, message: "Invalid operation" }, { status: 400 })
+      // List existing delegates
+      const listResult = await listDelegatesFromGmail(gmail)
+      if (!listResult.success) {
+        return NextResponse.json(
+          { error: listResult.message },
+          { status: 500 },
+        )
       }
+
+      // Check if delegate already exists
+      const existingDelegate = listResult.delegates?.find(
+        (d) => d.delegateEmail === delegateEmail,
+      )
+      if (existingDelegate) {
+        return NextResponse.json(
+          { error: "Delegate already exists" },
+          { status: 400 },
+        )
+      }
+
+      // Add delegate
+      await gmail.users.settings.delegates.create({
+        userId: "me",
+        requestBody: {
+          delegateEmail,
+        },
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: "Delegate added successfully",
+      })
     } finally {
-      // Clean up the temporary service account file
-      await cleanupFile(serviceAccountPath)
+      // Clean up service account file
+      await ServiceAccountManager.cleanupFile(filepath)
     }
   } catch (error: any) {
-    console.error("API error:", error)
+    console.error("Error in POST /api/delegates:", error)
     return NextResponse.json(
       {
-        success: false,
-        message: error.message || "An unexpected error occurred",
-        error: String(error),
-        stack: error.stack,
+        error: error.message || "Internal server error",
+        details: error.stack,
+      },
+      { status: 500 },
+    )
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const formData = await request.formData()
+    const serviceAccountFile = formData.get("serviceAccountFile") as File
+    const userEmail = formData.get("userEmail") as string
+    const delegateEmail = formData.get("delegateEmail") as string
+
+    if (!serviceAccountFile || !userEmail || !delegateEmail) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 },
+      )
+    }
+
+    // Save service account file temporarily
+    const filepath = await ServiceAccountManager.saveFile(serviceAccountFile)
+
+    try {
+      // Read service account file
+      const serviceAccount = await ServiceAccountManager.readFile(filepath)
+
+      // Create Gmail client
+      const gmail = await createGmailClientFromUtils(serviceAccount, userEmail)
+      if (!gmail) {
+        return NextResponse.json(
+          { error: "Failed to create Gmail client" },
+          { status: 500 },
+        )
+      }
+
+      // List existing delegates
+      const listResult = await listDelegatesFromGmail(gmail)
+      if (!listResult.success) {
+        return NextResponse.json(
+          { error: listResult.message },
+          { status: 500 },
+        )
+      }
+
+      // Check if delegate exists
+      const existingDelegate = listResult.delegates?.find(
+        (d) => d.delegateEmail === delegateEmail,
+      )
+      if (!existingDelegate) {
+        return NextResponse.json(
+          { error: "Delegate does not exist" },
+          { status: 400 },
+        )
+      }
+
+      // Remove delegate
+      await gmail.users.settings.delegates.delete({
+        userId: "me",
+        delegateEmail,
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: "Delegate removed successfully",
+      })
+    } finally {
+      // Clean up service account file
+      await ServiceAccountManager.cleanupFile(filepath)
+    }
+  } catch (error: any) {
+    console.error("Error in DELETE /api/delegates:", error)
+    return NextResponse.json(
+      {
+        error: error.message || "Internal server error",
+        details: error.stack,
       },
       { status: 500 },
     )
