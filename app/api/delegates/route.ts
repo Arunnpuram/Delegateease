@@ -7,7 +7,6 @@ import { randomUUID } from "crypto"
 import { promises as fsPromises } from "fs"
 import { exec } from "child_process"
 import { promisify } from "util"
-import path from "path"
 
 const execPromise = promisify(exec)
 
@@ -75,45 +74,37 @@ async function listDelegates(gmail: gmail_v1.Gmail): Promise<any> {
   }
 }
 
-// Add delegate operation using script
-async function addDelegate(serviceAccountPath: string, userEmail: string, delegateEmail: string): Promise<any> {
+// Add delegate operation using direct Gmail API
+async function addDelegateDirectly(gmail: gmail_v1.Gmail, delegateEmail: string): Promise<any> {
   try {
-    const scriptPath = path.join(process.cwd(), "createDelegate.ts")
-    const paramsPath = join(tmpdir(), `params_${Date.now()}.json`)
+    // Check if delegate already exists
+    const listResult = await listDelegates(gmail)
+    if (listResult.success && listResult.delegates) {
+      const delegateExists = listResult.delegates.some((delegate: any) => delegate.delegateEmail === delegateEmail)
 
-    await fsPromises.writeFile(
-      paramsPath,
-      JSON.stringify({
-        serviceAccountFile: serviceAccountPath,
-        userEmails: userEmail,
-        delegateEmails: delegateEmail,
-      }),
-    )
-
-    try {
-      const { stdout, stderr } = await execPromise(`npx ts-node ${scriptPath} --params ${paramsPath}`)
-
-      if (stderr && !stderr.includes("ExperimentalWarning")) {
-        console.error("Script error:", stderr)
+      if (delegateExists) {
         return {
           success: false,
-          message: "Error executing script",
-          rawOutput: stderr,
+          message: `Delegate ${delegateEmail} already exists`,
         }
       }
+    }
 
-      const success = !stdout.includes("Error")
-      return {
-        success,
-        message: success
-          ? `Delegate ${delegateEmail} added successfully to ${userEmail}.`
-          : "Failed to add delegate. Check the details for more information.",
-        rawOutput: stdout,
-      }
-    } finally {
-      await cleanupFile(paramsPath)
+    // Add delegate
+    const response = await gmail.users.settings.delegates.create({
+      userId: "me",
+      requestBody: {
+        delegateEmail: delegateEmail,
+      },
+    })
+
+    return {
+      success: true,
+      message: `Delegate ${delegateEmail} added successfully`,
+      details: response.data,
     }
   } catch (error: any) {
+    console.error("Error adding delegate:", error)
     return {
       success: false,
       message: error.message || "Error adding delegate",
@@ -122,45 +113,34 @@ async function addDelegate(serviceAccountPath: string, userEmail: string, delega
   }
 }
 
-// Remove delegate operation using script
-async function removeDelegate(serviceAccountPath: string, userEmail: string, delegateEmail: string): Promise<any> {
+// Remove delegate operation using direct Gmail API
+async function removeDelegateDirectly(gmail: gmail_v1.Gmail, delegateEmail: string): Promise<any> {
   try {
-    const scriptPath = path.join(process.cwd(), "deleteDelegate.ts")
-    const paramsPath = join(tmpdir(), `params_${Date.now()}.json`)
+    // Check if delegate exists
+    const listResult = await listDelegates(gmail)
+    if (listResult.success && listResult.delegates) {
+      const delegateExists = listResult.delegates.some((delegate: any) => delegate.delegateEmail === delegateEmail)
 
-    await fsPromises.writeFile(
-      paramsPath,
-      JSON.stringify({
-        serviceAccountFile: serviceAccountPath,
-        userEmails: userEmail,
-        delegateEmails: delegateEmail,
-      }),
-    )
-
-    try {
-      const { stdout, stderr } = await execPromise(`npx ts-node ${scriptPath} --params ${paramsPath}`)
-
-      if (stderr && !stderr.includes("ExperimentalWarning")) {
-        console.error("Script error:", stderr)
+      if (!delegateExists) {
         return {
           success: false,
-          message: "Error executing script",
-          rawOutput: stderr,
+          message: `Delegate ${delegateEmail} does not exist`,
         }
       }
+    }
 
-      const success = !stdout.includes("Error")
-      return {
-        success,
-        message: success
-          ? `Delegate ${delegateEmail} removed successfully from ${userEmail}.`
-          : "Failed to remove delegate. Check the details for more information.",
-        rawOutput: stdout,
-      }
-    } finally {
-      await cleanupFile(paramsPath)
+    // Remove delegate
+    await gmail.users.settings.delegates.delete({
+      userId: "me",
+      delegateEmail: delegateEmail,
+    })
+
+    return {
+      success: true,
+      message: `Delegate ${delegateEmail} removed successfully`,
     }
   } catch (error: any) {
+    console.error("Error removing delegate:", error)
     return {
       success: false,
       message: error.message || "Error removing delegate",
@@ -176,18 +156,19 @@ async function processBatch(serviceAccountPath: string, operations: any[]): Prom
   for (const op of operations) {
     const { operation, userEmail, delegateEmail } = op
 
-    if (operation === "list") {
-      const gmail = await createGmailClient(serviceAccountPath, userEmail)
-      if (!gmail) {
-        results.push({
-          success: false,
-          userEmail,
-          operation: "list",
-          message: "Failed to create Gmail client",
-        })
-        continue
-      }
+    // Create Gmail client for this user
+    const gmail = await createGmailClient(serviceAccountPath, userEmail)
+    if (!gmail) {
+      results.push({
+        success: false,
+        userEmail,
+        operation,
+        message: "Failed to create Gmail client",
+      })
+      continue
+    }
 
+    if (operation === "list") {
       const listResult = await listDelegates(gmail)
       results.push({
         ...listResult,
@@ -196,7 +177,7 @@ async function processBatch(serviceAccountPath: string, operations: any[]): Prom
         message: listResult.success ? "Delegates retrieved successfully" : listResult.message,
       })
     } else if (operation === "add") {
-      const addResult = await addDelegate(serviceAccountPath, userEmail, delegateEmail)
+      const addResult = await addDelegateDirectly(gmail, delegateEmail)
       results.push({
         ...addResult,
         userEmail,
@@ -204,7 +185,7 @@ async function processBatch(serviceAccountPath: string, operations: any[]): Prom
         operation: "add",
       })
     } else if (operation === "remove") {
-      const removeResult = await removeDelegate(serviceAccountPath, userEmail, delegateEmail)
+      const removeResult = await removeDelegateDirectly(gmail, delegateEmail)
       results.push({
         ...removeResult,
         userEmail,
@@ -264,13 +245,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, message: "User email is required" }, { status: 400 })
       }
 
+      // Create Gmail client
+      const gmail = await createGmailClient(serviceAccountPath, userEmail)
+      if (!gmail) {
+        return NextResponse.json({ success: false, message: "Failed to create Gmail client" }, { status: 500 })
+      }
+
       if (operation === "list") {
         // List delegates
-        const gmail = await createGmailClient(serviceAccountPath, userEmail)
-        if (!gmail) {
-          return NextResponse.json({ success: false, message: "Failed to create Gmail client" }, { status: 500 })
-        }
-
         const listResult = await listDelegates(gmail)
         return NextResponse.json({
           ...listResult,
@@ -278,30 +260,36 @@ export async function POST(request: NextRequest) {
           operation: "list",
           message: listResult.success ? "Delegates retrieved successfully" : listResult.message,
         })
-      } else if (operation === "add" || operation === "remove") {
+      } else if (operation === "add") {
         const delegateEmail = formData.get("delegateEmail") as string
 
         if (!delegateEmail) {
           return NextResponse.json({ success: false, message: "Delegate email is required" }, { status: 400 })
         }
 
-        if (operation === "add") {
-          const addResult = await addDelegate(serviceAccountPath, userEmail, delegateEmail)
-          return NextResponse.json({
-            ...addResult,
-            userEmail,
-            delegateEmail,
-            operation: "add",
-          })
-        } else {
-          const removeResult = await removeDelegate(serviceAccountPath, userEmail, delegateEmail)
-          return NextResponse.json({
-            ...removeResult,
-            userEmail,
-            delegateEmail,
-            operation: "remove",
-          })
+        // Add delegate directly using the Gmail API
+        const addResult = await addDelegateDirectly(gmail, delegateEmail)
+        return NextResponse.json({
+          ...addResult,
+          userEmail,
+          delegateEmail,
+          operation: "add",
+        })
+      } else if (operation === "remove") {
+        const delegateEmail = formData.get("delegateEmail") as string
+
+        if (!delegateEmail) {
+          return NextResponse.json({ success: false, message: "Delegate email is required" }, { status: 400 })
         }
+
+        // Remove delegate directly using the Gmail API
+        const removeResult = await removeDelegateDirectly(gmail, delegateEmail)
+        return NextResponse.json({
+          ...removeResult,
+          userEmail,
+          delegateEmail,
+          operation: "remove",
+        })
       } else {
         return NextResponse.json({ success: false, message: "Invalid operation" }, { status: 400 })
       }
