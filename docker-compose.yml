@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  delegateease:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    volumes:
+      - ./tmp:/app/tmp
+    restart: unless-stopped

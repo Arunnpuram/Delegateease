@@ -1,0 +1,175 @@
+# DelegateEase
+
+A self-hosted web application for easily managing Gmail delegation access for your organization.
+
+## Features
+
+- Add delegate access to shared mailboxes
+- Remove delegate access from shared mailboxes
+- List all delegates for a mailbox
+- Batch operations for multiple mailboxes and delegates
+- Secure handling of Google service account credentials
+- User-friendly web interface with light and dark mode
+- OAuth 2.0 or Service Account authentication options
+
+## How It Works
+
+DelegateEase provides a modern web interface for the Gmail delegation management scripts. The core functionality is implemented in:
+
+- `createDelegate.ts` - Script to add delegate access to Gmail accounts
+- `deleteDelegate.ts` - Script to remove delegate access from Gmail accounts
+
+The web interface in this repository provides a user-friendly way to use these scripts, with additional features like batch processing and a responsive UI.
+
+## Prerequisites
+
+1. Node.js (v18 or higher)
+2. A Google Cloud project with the Gmail API enabled
+3. A service account with domain-wide delegation configured (or OAuth 2.0 credentials)
+
+## Setup
+
+### 1. Create a Google Cloud Project and Service Account
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable the Gmail API for your project:
+   - Go to "APIs & Services" > "Library"
+   - Search for "Gmail API" and enable it
+4. Create a service account:
+   - Go to "IAM & Admin" > "Service Accounts"
+   - Click "Create Service Account"
+   - Give it a name and description
+   - Grant necessary roles (no specific roles needed for domain-wide delegation)
+   - Create and download the JSON key file
+
+### 2. Configure Domain-Wide Delegation
+
+1. Go to your Google Workspace Admin Console
+2. Navigate to Security > API Controls > Domain-wide Delegation
+3. Click "Add new" and enter:
+   - Client ID: Your service account's client ID (found in the JSON key file)
+   - OAuth Scopes: 
+     \`\`\`
+     https://www.googleapis.com/auth/gmail.settings.sharing,https://www.googleapis.com/auth/gmail.settings.basic,https://www.googleapis.com/auth/gmail.modify
+     \`\`\`
+
+### 3. Install and Run the Application
+
+#### Local Development
+
+\`\`\`bash
+# Clone the repository
+git clone https://github.com/yourusername/delegateease.git
+cd delegateease
+
+# Install dependencies
+npm install
+
+# Run in development mode
+npm run dev
+\`\`\`
+
+#### Production Deployment
+
+\`\`\`bash
+# Clone the repository
+git clone https://github.com/yourusername/delegateease.git
+cd delegateease
+
+# Install dependencies
+npm install
+
+# Build the application
+npm run build
+
+# Start the production server
+npm start
+\`\`\`
+
+## Self-Hosting Options
+
+### Standard Node.js Deployment
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Build the application: `npm run build`
+4. Start the server: `npm start`
+5. Access the application at http://localhost:3000
+
+### Docker Deployment
+
+1. Clone the repository
+2. Build the Docker image: `docker build -t delegateease .`
+3. Run the container: `docker run -p 3000:3000 delegateease`
+4. Access the application at http://localhost:3000
+
+### Docker Compose Deployment
+
+1. Clone the repository
+2. Run: `docker-compose up -d`
+3. Access the application at http://localhost:3000
+
+## Security Considerations
+
+- The service account JSON key file is processed in memory and is not stored permanently on the server
+- All API requests are made server-side to protect your credentials
+- Use HTTPS in production to encrypt data in transit
+- Consider implementing additional authentication for the web application
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the ISC License.
+\`\`\`
+
+Let's ensure the .gitignore file is properly set up:
+
+```plaintext file=".gitignore"
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# temporary files
+/tmp
+/uploads
+
+# service account files
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!docker-compose.yml
