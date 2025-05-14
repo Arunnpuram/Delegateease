@@ -199,10 +199,9 @@ export default function DelegateEaseApp() {
               <CardContent>
                 <Alert className="mb-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-900">
                   <AlertDescription>
-                    <p className="font-medium">Using Optimized API Routes</p>
+                    <p className="font-medium">Self-Hosted Application</p>
                     <p className="text-sm mt-1">
-                      This application now uses a consolidated API route for all operations, which should work better
-                      with Vercel deployments.
+                      This application runs entirely on your own infrastructure. No data is sent to external services.
                     </p>
                   </AlertDescription>
                 </Alert>

@@ -24,5 +24,6 @@ app.prepare().then(() => {
   }).listen(PORT, (err) => {
     if (err) throw err
     console.log(`> Ready on http://localhost:${PORT}`)
+    console.log(`> Self-hosted DelegateEase is now running`)
   })
 })

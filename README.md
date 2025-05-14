@@ -11,6 +11,7 @@ A self-hosted web application for easily managing Gmail delegation access for yo
 - Secure handling of Google service account credentials
 - User-friendly web interface with light and dark mode
 - OAuth 2.0 or Service Account authentication options
+- Completely self-hosted - no external dependencies
 
 ## How It Works
 
@@ -93,7 +94,7 @@ npm start
 
 1. Clone the repository
 2. Install dependencies: `npm install`
-3. Build the application: `npm run build`
+3. Build the application: `npm build`
 4. Start the server: `npm start`
 5. Access the application at http://localhost:3000
 
@@ -125,10 +126,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 This project is licensed under the ISC License.
 \`\`\`
-
-Let's ensure the .gitignore file is properly set up:
-
-```plaintext file=".gitignore"
+\`\`\`plaintext file=".gitignore"
 # dependencies
 /node_modules
 /.pnp
