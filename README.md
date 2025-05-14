@@ -77,11 +77,3 @@ The web interface in this repository provides a user-friendly way to use these s
 1. Clone the repository
 2. Run: `docker-compose up -d`
 3. Access the application at http://localhost:3000
-
-## Security Considerations
-
-- The service account JSON key file is processed in memory and is not stored permanently on the server
-- All API requests are made server-side to protect your credentials
-- Use HTTPS in production to encrypt data in transit
-- Consider implementing additional authentication for the web application
-
