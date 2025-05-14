@@ -27,7 +27,7 @@ export default function DelegateForm({
   const [userEmail, setUserEmail] = useState<string>("")
   const [delegateEmail, setDelegateEmail] = useState<string>("")
   const [batchEmails, setBatchEmails] = useState<string>("")
-  const [debugMode, setDebugMode] = useState<boolean>(true) // Enable debug mode by default
+  const [debugMode, setDebugMode] = useState<boolean>(false) // Debug mode disabled by default
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -361,17 +361,13 @@ export default function DelegateForm({
           </div>
         </form>
 
-        <Alert className="mt-4 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-900">
-          <AlertDescription className="text-xs">
-            Debug Mode is enabled by default. Check the browser console (F12) for detailed logs.
-            {operation === "list" && (
-              <div className="mt-1">
-                <strong>Tip:</strong> If you're having trouble with the List operation, try the "USE DIRECT API" button
-                above.
-              </div>
-            )}
-          </AlertDescription>
-        </Alert>
+        {debugMode && (
+          <Alert className="mt-4 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-900">
+            <AlertDescription className="text-xs">
+              Debug Mode is enabled. Check the browser console (F12) for detailed logs.
+            </AlertDescription>
+          </Alert>
+        )}
       </TabsContent>
 
       <TabsContent value="batch">
