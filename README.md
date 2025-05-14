@@ -2,7 +2,7 @@
 
 A self-hosted web application for easily managing Gmail delegation access for your organization. DelegateEase is a powerful web application designed to streamline the process of managing Gmail delegate access. It provides a user-friendly interface for administrators to efficiently handle email delegation across multiple accounts.
 
-> **Note**: This is a self-hosted application. While it uses Next.js, it is not intended for deployment on Vercel or similar platforms. Please follow the self-hosting instructions below.
+> **Important**: This is a self-hosted application. It is not intended for deployment on Vercel or similar platforms. The application should be deployed on your own infrastructure following the self-hosting instructions below.
 
 ## Features
 
